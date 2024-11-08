@@ -48,7 +48,8 @@
             color: #007bff;
         }
 
-        .wake-lock-btn {
+        .wake-lock-btn,
+        #startTrackingBtn {
             margin-top: 10px;
             padding: 5px 10px;
             background-color: #28a745;
@@ -71,6 +72,7 @@
         <p>Speed: <span id="speed" class="stat-value">0</span> km/h</p>
         <p>Distance: <span id="distance" class="stat-value">0</span> km</p>
         <button id="wakeLockBtn" class="wake-lock-btn">Keep Screen On</button>
+        <button id="startTrackingBtn">Start Tracking</button>
     </div>
 
     <!-- Leaflet JS -->
@@ -81,38 +83,25 @@
         let map, polyline, previousPosition = null, totalDistance = 0;
         let wakeLock = null;
 
-        // Initialize the map
-        function initMap() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    const { latitude, longitude } = position.coords;
-                    map = L.map('map').setView([latitude, longitude], 15);
+        // Initialize the map after user interaction
+        function initMap(latitude, longitude) {
+            map = L.map('map').setView([latitude, longitude], 15);
 
-                    // Add OpenStreetMap tiles
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        maxZoom: 19,
-                        attribution: '© OpenStreetMap contributors'
-                    }).addTo(map);
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
 
-                    // Initialize polyline to track the path
-                    polyline = L.polyline([], {
-                        color: '#007bff',
-                        weight: 3,
-                        opacity: 0.8
-                    }).addTo(map);
+            // Initialize polyline to track the path
+            polyline = L.polyline([], {
+                color: '#007bff',
+                weight: 3,
+                opacity: 0.8
+            }).addTo(map);
 
-                    // Add current position marker
-                    L.marker([latitude, longitude]).addTo(map);
-
-                    // Start GPS tracking
-                    startTracking();
-                }, error => {
-                    console.error("Error getting initial position:", error);
-                    alert("Please enable location services to use this app.");
-                });
-            } else {
-                alert("Geolocation is not supported by your browser.");
-            }
+            // Add current position marker
+            L.marker([latitude, longitude]).addTo(map);
         }
 
         // Calculate distance between two coordinates in kilometers
@@ -130,19 +119,33 @@
         // Start tracking GPS location
         function startTracking() {
             if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(
-                    updatePosition,
-                    error => {
-                        console.error("Tracking error:", error);
-                        alert("Error tracking location. Please check your GPS settings.");
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 5000,
-                        maximumAge: 0
-                    }
-                );
+                navigator.geolocation.getCurrentPosition(position => {
+                    const { latitude, longitude } = position.coords;
+                    initMap(latitude, longitude); // Initialize the map with current location
+                    startWatchingPosition();      // Start updating the position continuously
+                }, error => {
+                    console.error("Error getting initial position:", error);
+                    alert("Please enable location services to use this app.");
+                });
+            } else {
+                alert("Geolocation is not supported by your browser.");
             }
+        }
+
+        // Continuously watch position changes
+        function startWatchingPosition() {
+            navigator.geolocation.watchPosition(
+                updatePosition,
+                error => {
+                    console.error("Tracking error:", error);
+                    alert("Error tracking location. Please check your GPS settings.");
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                }
+            );
         }
 
         // Update position on map and stats
@@ -200,9 +203,10 @@
             }
         }
 
-        // Initialize the map on user interaction
+        // Attach event listeners
         window.onload = () => {
-            document.getElementById('map').addEventListener('click', initMap);
+            // Setup the Start Tracking button to initiate map and GPS tracking
+            document.getElementById('startTrackingBtn').addEventListener('click', startTracking);
 
             // Setup wake lock button if supported
             if ('wakeLock' in navigator) {
