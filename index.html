@@ -4,18 +4,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sail Tracking App</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Sailing GPS Tracker</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        #map {
+            width: 100%;
+            flex-grow: 1;
+            background-color: #e5e5e5;
+        }
+
+        #stats {
+            padding: 1em;
+            background-color: #fff;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .wake-lock-btn {
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .wake-lock-btn.active {
+            background-color: #dc3545;
+        }
+    </style>
 </head>
 
 <body>
     <div id="map"></div>
     <div id="stats">
         <h2>Tracking Stats</h2>
-        <p><strong>Speed:</strong> <span id="speed">0</span> km/h</p>
-        <p><strong>Distance:</strong> <span id="distance">0</span> km</p>
+        <p>Speed: <span id="speed" class="stat-value">0</span> km/h</p>
+        <p>Distance: <span id="distance" class="stat-value">0</span> km</p>
+        <button id="wakeLockBtn" class="wake-lock-btn">Keep Screen On</button>
     </div>
-    <script src="script.js"></script>
+
+    <!-- Leaflet JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+
+    <script>
+        // Initialize global variables
+        let map, polyline, previousPosition = null, totalDistance = 0;
+        let wakeLock = null;
+
+        // Initialize the map
+        function initMap() {
+            // Request location permission immediately
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const { latitude, longitude } = position.coords;
+                    map = L.map('map').setView([latitude, longitude], 15);
+
+                    // Add OpenStreetMap tiles
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(map);
+
+                    // Initialize polyline to track the path
+                    polyline = L.polyline([], {
+                        color: '#007bff',
+                        weight: 3,
+                        opacity: 0.8
+                    }).addTo(map);
+
+                    // Add current position marker
+                    L.marker([latitude, longitude]).addTo(map);
+
+                    // Start GPS tracking
+                    startTracking();
+                }, error => {
+                    console.error("Error getting initial position:", error);
+                    alert("Please enable location services to use this app.");
+                });
+            }
+        }
+
+        // Calculate distance between two coordinates in kilometers
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius of the Earth in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        // Start tracking GPS location
+        function startTracking() {
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(
+                    updatePosition,
+                    error => {
+                        console.error("Tracking error:", error);
+                        alert("Error tracking location. Please check your GPS settings.");
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    }
+                );
+            }
+        }
+
+        // Update position on map and stats
+        function updatePosition(position) {
+            const { latitude, longitude, speed } = position.coords;
+            const currentPosition = [latitude, longitude];
+
+            // Update map view and path
+            map.setView(currentPosition);
+            polyline.addLatLng(currentPosition);
+
+            // Calculate distance if we have a previous position
+            if (previousPosition) {
+                const distance = calculateDistance(
+                    previousPosition[0], previousPosition[1],
+                    latitude, longitude
+                );
+
+                // Only add to total if the distance is reasonable (prevent GPS jumps)
+                if (distance < 0.1) { // Less than 100m
+                    totalDistance += distance;
+                }
+            }
+
+            // Update stats display
+            document.getElementById('distance').textContent = totalDistance.toFixed(2);
+            document.getElementById('speed').textContent = speed ? (speed * 3.6).toFixed(1) : '0'; // Convert m/s to km/h
+
+            // Update previous position
+            previousPosition = currentPosition;
+        }
+
+        // Handle wake lock (keep screen on)
+        async function handleWakeLock() {
+            const btn = document.getElementById('wakeLockBtn');
+
+            if (!wakeLock) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    btn.textContent = 'Screen Lock Active';
+                    btn.classList.add('active');
+
+                    wakeLock.addEventListener('release', () => {
+                        wakeLock = null;
+                        btn.textContent = 'Keep Screen On';
+                        btn.classList.remove('active');
+                    });
+                } catch (err) {
+                    console.error(`Wake Lock error: ${err.name}, ${err.message}`);
+                    alert('Could not keep screen on. Your device may not support this feature.');
+                }
+            } else {
+                wakeLock.release();
+                wakeLock = null;
+            }
+        }
+
+        // Initialize the map when page loads
+        window.onload = () => {
+            initMap();
+
+            // Setup wake lock button if supported
+            if ('wakeLock' in navigator) {
+                const wakeLockBtn = document.getElementById('wakeLockBtn');
+                wakeLockBtn.addEventListener('click', handleWakeLock);
+            } else {
+                document.getElementById('wakeLockBtn').style.display = 'none';
+            }
+        };
+    </script>
 </body>
 
 </html>
