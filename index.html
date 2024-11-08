@@ -3,32 +3,48 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sailing GPS Tracker with Compass and Graphs</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Sailing GPS Tracker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <link rel="stylesheet" href="style.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 
 <body>
-    <div id="map">
-        <div id="compass">0°</div>
-    </div>
-    <div id="stats">
-        <h2>Tracking Stats</h2>
-        <p>Speed: <span id="speed" class="stat-value">0</span> km/h</p>
-        <p>Distance: <span id="distance" class="stat-value">0</span> km</p>
-        <button id="wakeLockBtn" class="wake-lock-btn">Keep Screen On</button>
-        <button id="startTrackingBtn">Start Tracking</button>
-    </div>
-    <div id="graphs">
-        <div class="chart-container">
-            <canvas id="speedChart"></canvas>
-        </div>
-        <div class="chart-container">
-            <canvas id="distanceChart"></canvas>
-        </div>
-    </div>
+    <header class="app-header">
+        <h1>Sailing Tracker</h1>
+        <button id="startTrackingBtn" class="material-btn">Start</button>
+    </header>
+
+    <main>
+        <section id="map-section">
+            <div id="map">
+                <div id="compass">0°</div>
+            </div>
+        </section>
+        <section id="stats">
+            <div class="stat-container">
+                <p class="stat-label">Speed</p>
+                <p class="stat-value" id="speed">0</p>
+            </div>
+            <div class="stat-container">
+                <p class="stat-label">Distance</p>
+                <p class="stat-value" id="distance">0 km</p>
+            </div>
+            <button id="wakeLockBtn" class="material-btn">Keep Screen On</button>
+        </section>
+        <section id="graphs">
+            <div class="chart-container">
+                <canvas id="speedChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="distanceChart"></canvas>
+            </div>
+        </section>
+    </main>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
     <script src="script.js"></script>
 </body>
