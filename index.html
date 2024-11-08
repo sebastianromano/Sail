@@ -83,7 +83,6 @@
 
         // Initialize the map
         function initMap() {
-            // Request location permission immediately
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
                     const { latitude, longitude } = position.coords;
@@ -111,6 +110,8 @@
                     console.error("Error getting initial position:", error);
                     alert("Please enable location services to use this app.");
                 });
+            } else {
+                alert("Geolocation is not supported by your browser.");
             }
         }
 
@@ -150,7 +151,7 @@
             const currentPosition = [latitude, longitude];
 
             // Update map view and path
-            map.setView(currentPosition);
+            map.setView(currentPosition, map.getZoom());
             polyline.addLatLng(currentPosition);
 
             // Calculate distance if we have a previous position
@@ -199,9 +200,9 @@
             }
         }
 
-        // Initialize the map when page loads
+        // Initialize the map on user interaction
         window.onload = () => {
-            initMap();
+            document.getElementById('map').addEventListener('click', initMap);
 
             // Setup wake lock button if supported
             if ('wakeLock' in navigator) {
