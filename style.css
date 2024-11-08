@@ -16,7 +16,6 @@ body {
 .app-header {
     padding: 1em;
     background-color: #007aff;
-    /* iOS blue for header */
     color: white;
     display: flex;
     justify-content: space-between;
@@ -43,6 +42,19 @@ body {
 
 .material-btn:hover {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Active button state for Start Tracking */
+.material-btn.active {
+    background-color: #34c759;
+    /* iOS green for active state */
+}
+
+/* Ensure the map fills the viewport height */
+main {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
 }
 
 #map-section {

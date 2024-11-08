@@ -47,12 +47,16 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 function startTracking() {
+    const startBtn = document.getElementById('startTrackingBtn');
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
             const { latitude, longitude } = position.coords;
             initMap(latitude, longitude);
             initCharts();
+            map.invalidateSize(); // Ensure the map resizes properly
             startWatchingPosition();
+            startBtn.classList.add('active');
+            startBtn.textContent = 'Tracking...';
         }, error => {
             alert("Please enable location services to use this app.");
         });
